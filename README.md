@@ -11,3 +11,4 @@ From the time a kwh value changes the mean power in Wats is calculated per hour 
 
 table 'map' has the translation to log file vallue names.
 
+A simular project for P1 metering can be found here: https://github.com/CurlyMoo/RaspberryPi-P1-port
