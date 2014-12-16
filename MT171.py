@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from __future__ import print_function 
 import serial
 import time
@@ -203,6 +204,17 @@ def insert(db, c, v, g):
   else:
     print(uurstart, "g =", g)
   db.commit()
+  # kopieer laatste waarden
+  if v >= 0:
+    c.execute("UPDATE feeds SET value = (SELECT data FROM feed_1 WHERE time = %d) WHERE id = 1;" % (uurstart)) # Watt gemideld per uur
+    c.execute("UPDATE feeds SET value = (SELECT data FROM feed_2 WHERE time = %d) WHERE id = 2;" % (int(uurstart)/86400*86400)) # kWh per dag
+    c.execute("UPDATE feeds SET value = (SELECT data FROM feed_3 WHERE time = %d) WHERE id = 3;" % ((time.localtime(uurstart)).tm_year)) # kWh per jaar
+  if g >= 0:
+    c.execute("UPDATE feeds SET value = (SELECT data FROM feed_4 WHERE time = %d) WHERE id = 4;" % (uurstart)) # Watt gemideld per uur
+    c.execute("UPDATE feeds SET value = (SELECT data FROM feed_5 WHERE time = %d) WHERE id = 5;" % (int(uurstart)/86400*86400)) # kWh per dag
+    c.execute("UPDATE feeds SET value = (SELECT data FROM feed_6 WHERE time = %d) WHERE id = 6;" % ((time.localtime(uurstart)).tm_year)) # kWh per jaar
+  db.commit()
+
 
 def output_to_database(list):
   global oudt
