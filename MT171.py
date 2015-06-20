@@ -255,14 +255,20 @@ def output_to_database(list):
     if (db.isOpen()):
       db.close()
 #the closing in last except can crash the script. rewrite in the form of :
-#try:
-#    f = open("file", "w")
 #    try:
-#        f.write('Hello World!')
-#    finally:
-#        f.close()
-#except IOError:
-#    print 'oops!' """
+#        f = open("file", "w")
+#        try:
+#            f.write('Hello World!')
+#        finally:
+#            f.close()
+#    except IOError:
+#        print 'oops!' """
+#or
+#    try:
+#        with open("output", "w") as outfile:
+#            outfile.write('Hello World')
+#    except IOError:
+#        print 'oops!'
 
 map = [
   # The structure of the meter_data() output can be set with this variable 
