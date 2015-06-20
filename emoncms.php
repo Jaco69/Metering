@@ -44,14 +44,6 @@ $feed_6 = array(
   array('time' => '2015','data' => '0')
 );
 
-);
-
-);
-
-);
-
-);
-
 // `emoncms`.`multigraph`
 $multigraph = array(
   array('id' => '1','name' => '','userid' => '1','feedlist' => '[{"id":"1","name":"Elektriciteitsmeter verbruik","datatype":"1","timeWindow":2592000000,"end":0},{"id":"2","name":"Verbruik in Watt","datatype":"1"}]'),
@@ -61,8 +53,6 @@ $multigraph = array(
 // `emoncms`.`myelectric`
 $myelectric = array(
   array('userid' => '1','data' => '{"powerfeed":1,"dailyfeed":2,"dailytype":2}')
-);
-
 );
 
 // `emoncms`.`rememberme`
