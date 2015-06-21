@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function 
+from contextlib import closing
 import serial
 import time
 import MySQLdb
@@ -23,6 +24,7 @@ def read_datablock():
   STX = '\x02'
   ETX = '\x03'
   tr = 0.2
+  debugtext = ""
   """ does all that's needed to get meter data from the meter device """ 
   try:
     try:
@@ -31,15 +33,12 @@ def read_datablock():
       print("Could not open serial port")
       return ""
     # 1 ->
+    debugtext = "port open"
     time.sleep(tr)
     Request_message='/?!\r\n' # IEC 62056-21:2002(E) 6.3.1
-    try:
-      send(IskraMT171, Request_message, tr)
-    except:
-      print("Could not send request message")
-      IskraMT171.close()
-      return ""
-    # 2 <-
+    send(IskraMT171, Request_message, tr)
+    # 2 <- 
+    debugtext = "request message send"
     time.sleep(tr)
     try:
       Identification_message=IskraMT171.readline() # IEC 62056-21:2002(E) 6.3.2
@@ -47,7 +46,8 @@ def read_datablock():
       print("Could not read identification line")
       IskraMT171.close()
       return ""
-    if (Identification_message[0] != '/'):
+    debugtext = "ID line read"
+    if (len(Identification_message) < 1 or Identification_message[0] != '/'):
       print("no Identification message")
       IskraMT171.close()
       return ""
@@ -82,8 +82,10 @@ def read_datablock():
       print("Could not send acknowledgement message")
       IskraMT171.close()
       return ""
+    debugtext = "ACK send"
     IskraMT171.baudrate=new_baud_rate
     time.sleep(tr)
+    debugtext = "speed set"
     # 4 <-
     datablock = ""
     try:
@@ -93,6 +95,7 @@ def read_datablock():
       IskraMT171.close()
       return ""
     if (x == STX):
+      debugtext = "STX found"
       try:
         x = IskraMT171.read()
       except:
@@ -109,6 +112,7 @@ def read_datablock():
           print("Could not read char for datablock")
           IskraMT171.close()
           return ""
+      debugtext = "! found"
       while (x  != ETX):
         BCC = BCC ^ ord(x) # ETX itself is part of block check
         try:
@@ -117,6 +121,7 @@ def read_datablock():
           print("Could not read char")
           IskraMT171.close()
           return ""
+      debugtext = "EXT found"
       BCC = BCC ^ ord(x)
       try:
         x = IskraMT171.read()   # x is now the Block Check Character
@@ -125,6 +130,7 @@ def read_datablock():
         IskraMT171.close()
         return ""
       # last character is read, could close connection here
+      debugtext = "all read"
       if (BCC != ord(x)): # received correctly?
         datablock = ""
         print("Block check not OK")
@@ -134,6 +140,7 @@ def read_datablock():
     return datablock
   except:
     print("Some error reading data")
+    print(debugtext)
     if (IskraMT171.isOpen()):
       IskraMT171.close()
     return ""
@@ -223,52 +230,39 @@ def output_to_database(list):
   global uurstart
   global uureind
   t = time.mktime(time.strptime(list[t_index],"%Y-%m-%d %H:%M:%S"))
-  v = float(list[v_index])
-  g = float(list[g_index])
   try:
-    db = MySQLdb.connect(db="emoncms", user="root", passwd="raspberry")
-    cursor = db.cursor()
-    # gemiddeld Watt per uur
-    while t > uureind:
-      #het huidig vermogen loopt tot volgend uur, we kunnen het gemiddeld uurvermogen berekenen en opslaan
-      if oudt > uurstart:
-        insert(db, cursor, (v-oudverbruikt)*(uureind-oudt)/(t-oudt), (g-oudgeleverd)*(uureind-oudt)/(t-oudt))
-      else:
-        insert(db, cursor, (v-oudverbruikt)*(uureind-uurstart)/(t-oudt), (g-oudgeleverd)*(uureind-uurstart)/(t-oudt))
-      #naar volgend uur
-      uurstart = uureind
-      uureind = uurstart + 3600
-    #het huidig vermogen eindigd in dit uur, we kunnen bij de tijdelijke berekening optellen
-    if oudt > uurstart:
-      insert(db, cursor, v-oudverbruikt, g-oudgeleverd)
-    else:
-      insert(db, cursor, (v-oudverbruikt)*(t-uurstart)/(t-oudt), (g-oudgeleverd)*(t-uurstart)/(t-oudt))
-    oudt = t
-    oudverbruikt = v
-    oudgeleverd = g
-    cursor.close()
-    db.close()
+    v = float(list[v_index])
+  except:
+    print("\nNo value found at list[v_index], check map[].\n")
+    v = -0.00000001
+  try:
+    g = float(list[g_index])
+  except:
+    print("\nNo value found at list[g_index], check map[].\n")
+    g = -0.00000001
+  try:
+    with closing(MySQLdb.connect(db="emoncms", user="root", passwd="raspberry")) as db:
+      with db as cursor:
+        # gemiddeld Watt per uur
+        while t > uureind:
+          #het huidig vermogen loopt tot volgend uur, we kunnen het gemiddeld uurvermogen berekenen en opslaan
+          if oudt > uurstart:
+            insert(db, cursor, (v-oudverbruikt)*(uureind-oudt)/(t-oudt), (g-oudgeleverd)*(uureind-oudt)/(t-oudt))
+          else:
+            insert(db, cursor, (v-oudverbruikt)*(uureind-uurstart)/(t-oudt), (g-oudgeleverd)*(uureind-uurstart)/(t-oudt))
+          #naar volgend uur
+          uurstart = uureind
+          uureind = uurstart + 3600
+        #het huidig vermogen eindigd in dit uur, we kunnen bij de tijdelijke berekening optellen
+        if oudt > uurstart:
+          insert(db, cursor, v-oudverbruikt, g-oudgeleverd)
+        else:
+          insert(db, cursor, (v-oudverbruikt)*(t-uurstart)/(t-oudt), (g-oudgeleverd)*(t-uurstart)/(t-oudt))
+        oudt = t
+        oudverbruikt = v
+        oudgeleverd = g
   except:
     print("Some error writing data to database")
-    if (cursor.isOpen()):
-      cursor.close()
-    if (db.isOpen()):
-      db.close()
-#the closing in last except can crash the script. rewrite in the form of :
-#    try:
-#        f = open("file", "w")
-#        try:
-#            f.write('Hello World!')
-#        finally:
-#            f.close()
-#    except IOError:
-#        print 'oops!' """
-#or
-#    try:
-#        with open("output", "w") as outfile:
-#            outfile.write('Hello World')
-#    except IOError:
-#        print 'oops!'
 
 map = [
   # The structure of the meter_data() output can be set with this variable 
@@ -326,5 +320,5 @@ while (1):
     output_to_file(datalist)
     output_to_database(datalist)
     previous_datalist = datalist
-  time.sleep(3) # minimum waiting time is 3 seconds, less and the meter doesn't return data 
+  time.sleep(3.5) # minimum waiting time is 3 seconds, less and the meter doesn't return data 
   datalist = meter_data(read_datablock() , map, 0)
