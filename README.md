@@ -1,7 +1,7 @@
 Metering
 ========
 
-scripts to read meter data and fill into MySQL database
+scripts to read IEC61107 meter data and fill into MySQL database
 
 The MT171.py script needs to be started once and will then read the meter regulary.
 The sleep command almost at the end of the script will pause between reading the meter.
