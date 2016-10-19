@@ -210,7 +210,7 @@ def insert(db, c, v, g):
     c.execute("INSERT INTO feed_6 (time, data) VALUES (%d, %f) ON DUPLICATE KEY UPDATE data = data + %f;" % ((time.localtime(uurstart)).tm_year, g, g)) # kWh per jaar
   else:
     print(uurstart, "g =", g)
-  db.commit()
+
   # kopieer laatste waarden
   if v >= 0:
     c.execute("UPDATE feeds SET value = (SELECT data FROM feed_1 WHERE time = %d) WHERE id = 1;" % (uurstart)) # Watt gemideld per uur
@@ -220,8 +220,7 @@ def insert(db, c, v, g):
     c.execute("UPDATE feeds SET value = (SELECT data FROM feed_4 WHERE time = %d) WHERE id = 4;" % (uurstart)) # Watt gemideld per uur
     c.execute("UPDATE feeds SET value = (SELECT data FROM feed_5 WHERE time = %d) WHERE id = 5;" % (int(uurstart)/86400*86400)) # kWh per dag
     c.execute("UPDATE feeds SET value = (SELECT data FROM feed_6 WHERE time = %d) WHERE id = 6;" % ((time.localtime(uurstart)).tm_year)) # kWh per jaar
-  db.commit()
-
+ 
 
 def output_to_database(list):
   global oudt
@@ -264,6 +263,7 @@ def output_to_database(list):
   except:
     print("Some error writing data to database")
 
+    
 map = [
   # The structure of the meter_data() output can be set with this variable 
   # first string on each line is the cosim adress of the data you want to safe or "time" to insert the time
