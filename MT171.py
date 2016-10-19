@@ -289,11 +289,18 @@ datalist = meter_data(read_datablock() , map, 0) # reads meter for the first tim
 # reads old data from file
 with open(filename) as f:
   for line in f:
-    list = eval(line)
-    if list[1].find("-") == 4: # skips header lines
-      oudt = int(time.mktime(time.strptime(list[t_index],"%Y-%m-%d %H:%M:%S")))
-      oudverbruikt = float(list[v_index])
-      oudgeleverd = float(list[g_index])
+    try:
+      list = eval(line)
+      if list[1].find("-") == 4: # skips header lines
+        oudt = int(time.mktime(time.strptime(list[t_index],"%Y-%m-%d %H:%M:%S")))
+        oudverbruikt = float(list[v_index])
+        oudgeleverd = float(list[g_index])
+    except:
+      # Did once get this. Probably because of power disconnect and file not properly closed
+      #   File "MT171.py", line 291, in <module>
+      #     list = eval(line)
+      # TypeError: expected string without null bytes
+      print("Skipping line as it has some problems. File needs maintenance removing NULL bytes")
 uurstart = oudt/3600*3600
 uureind = uurstart + 3600
 dag = uurstart/3600/24
